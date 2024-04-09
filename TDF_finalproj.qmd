@@ -1,0 +1,56 @@
+---
+title: "Final Project: Tour de France"
+author: "Tristan Hamilton"
+format: 
+  html:
+    embed-resources: true
+---
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(plotly)
+
+winners <- winners |>
+  mutate(year = year(start_date))
+```
+
+```{r}
+winners_age <- winners |> group_by(edition, year, winner_name) |>
+  summarise(winner_age = mean(age))
+
+winners_wins <- winners |> group_by(edition, year, winner_name) |>
+  summarise(stage_wins = sum(stage_wins))
+
+overall_age <- mean(winners$age)
+
+winners_df2 <- winners_age |> left_join(winners_wins, by = c("edition", "year", "winner_name"))
+
+
+winners_plot <- ggplot(data = winners_df2, aes(x = year, y = winner_age, label = winner_name, label2 = stage_wins)) +
+  geom_line(colour = "blue4") +
+  geom_point(size = 0.75) +
+  geom_hline(yintercept = overall_age, colour = "red",) +
+  theme_classic()
+
+ggplotly(winners_plot)
+
+### Maybe make a reactive component in shiny app that allows the user to select from a list of winners, so that the chosen name is a larger red point on the graph 
+```
+
+
+```{r}
+library(shiny)
+
+
+ui <- fluidPage(
+  
+)
+
+server <- function(input, output, session) {
+  
+}
+
+shinyApp(ui, server)
+```
+
