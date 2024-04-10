@@ -6,7 +6,10 @@ format:
     embed-resources: true
 ---
 
+https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-04-07/readme.md
+
 ```{r}
+library(tdf)
 library(tidyverse)
 library(lubridate)
 library(plotly)
@@ -16,38 +19,87 @@ winners <- winners |>
 ```
 
 ```{r}
-winners_age <- winners |> group_by(edition, year, winner_name) |>
+winners_age <- winners |> group_by(edition, year, winner_name, winner_team) |>
   summarise(winner_age = mean(age))
 
-winners_wins <- winners |> group_by(edition, year, winner_name) |>
+winners_wins <- winners |> group_by(edition, year, winner_name, winner_team) |>
   summarise(stage_wins = sum(stage_wins))
 
-overall_age <- mean(winners$age)
 
-winners_df2 <- winners_age |> left_join(winners_wins, by = c("edition", "year", "winner_name"))
+overall_age <- mean(winners$age)
+overall_age2 <- median(winners$age)
+
+winners_df2 <- winners_age |> left_join(winners_wins, by = c("edition", "year", "winner_name", "winner_team"))
+
+top_riders <- winners_df2 |> group_by(winner_name) |>
+  summarise(tdf_wins = n()) |>
+  arrange(desc(tdf_wins)) |>
+  slice(1:6)
 
 
 winners_plot <- ggplot(data = winners_df2, aes(x = year, y = winner_age, label = winner_name, label2 = stage_wins)) +
-  geom_line(colour = "blue4") +
+  geom_line(colour = "deepskyblue1") +
   geom_point(size = 0.75) +
-  geom_hline(yintercept = overall_age, colour = "red",) +
-  theme_classic()
+  geom_hline(yintercept = overall_age, colour = "red", linewidth = 0.5) +
+  geom_hline(yintercept = overall_age2, colour = "darkorange", linewidth = 0.5) +
+  theme_classic() +
+  labs(title = "Ages of Tour de France Winners",
+       x = "Year",
+       y = "Age of Winner")
 
 ggplotly(winners_plot)
 
-### Maybe make a reactive component in shiny app that allows the user to select from a list of winners, so that the chosen name is a larger red point on the graph 
+### Make a reactive component in shiny app that allows the user to select from a list of winners, so that the chosen name is a larger red point on the graph 
+### plus make a summary table for riders with the most tdf wins
+
+### next, look at scatter plot of distance (km) vs elapsed time, user can select winner which will highlight the point(s)
+
+### something with nationality, look at country with most wins, or a cool chart/graph showing the different nationalities
 ```
 
 
 ```{r}
 library(shiny)
 
-
+rider_choices <- winners_df2 |> distinct(winner_name) |> pull(winner_name)
 ui <- fluidPage(
-  
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("rider_sel",
+                  label = "Choose a Tour de France Winner:",
+                  choices = rider_choices)
+    ),
+    mainPanel(
+      plotOutput("winners_plot2"),
+      tableOutput("data")
+    )
+  )
 )
 
 server <- function(input, output, session) {
+  
+  winner_reactive <- reactive({
+    winners_df2 |> filter(winner_name == input$rider_sel)
+    
+  })
+  
+  output$winners_plot2 <- renderPlot({
+    ggplot(data = winners_df2, aes(x = year, y = winner_age)) +
+      geom_line(colour = "deepskyblue1") +
+      geom_point(size = 0.75) +
+      geom_point(data = winner_reactive(), aes(x = year, y = winner_age), 
+                                               colour = "red", size = 4) +
+      geom_hline(yintercept = overall_age, colour = "darkorange", linewidth = 0.5) +
+      theme_classic(base_size = 20) +
+      labs(title = "Ages of Tour de France Winners",
+           x = "Year",
+           y = "Age of Winner")
+    
+  })
+    
+  output$data <- renderTable({
+    winner_reactive()
+  })
   
 }
 
