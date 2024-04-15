@@ -32,6 +32,9 @@ overall_age2 <- median(winners$age)
 
 winners_df2 <- winners_age |> left_join(winners_wins, by = c("edition", "year", "winner_name", "winner_team"))
 
+winners_df3 <- winners |>
+  select(winner_name, distance, time_overall, time_margin)
+
 top_riders <- winners_df2 |> group_by(winner_name) |>
   summarise(tdf_wins = n()) |>
   arrange(desc(tdf_wins)) |>
@@ -46,27 +49,20 @@ winners_plot <- ggplot(data = winners_df2, aes(x = year, y = winner_age, label =
   theme_classic() +
   labs(title = "Ages of Tour de France Winners",
        x = "Year",
-       y = "Age of Winner")
+       y = "Age of Winner") 
 
 ggplotly(winners_plot)
 
-### Make a reactive component in shiny app that allows the user to select from a list of winners, so that the chosen name is a larger red point on the graph 
-### plus make a summary table for riders with the most tdf wins
+### looking at mean age of TDF winners
 
-### next, look at scatter plot of distance (km) vs elapsed time, user can select winner which will highlight the point(s)
+### user can select winner which will highlight the point(s) 
 
-### 
-
-### something with nationality, look at country with most wins, or a cool chart/graph showing the different nationalities
-```
-
-```{r}
-ggplot(data = winners, aes(x = time_overall, y = distance)) +
-  geom_point()
+### something with nationality, look at country with most wins
 ```
 
 
 ```{r}
+## country wins
 country_wins <- winners |> group_by(nationality) |>
   summarise(country_wins = n()) |>
   arrange(desc(country_wins)) |>
@@ -80,21 +76,40 @@ ggplot(data = country_wins, aes(x = reorder(nationality, country_wins), y = coun
        y = "Number of TDF Wins")
 ```
 
+```{r}
+## distance 
+winners |> group_by(year) |>
+  summarise(tdf_distance = max(distance)) |>
+  arrange(desc(tdf_distance))
+
+avg_distance_km <- mean(winners$distance)
+
+ggplot(data = winners, aes(x = time_overall, y = distance)) +
+  geom_point() +
+  geom_smooth() +
+  geom_hline(yintercept = avg_distance_km, colour = "red2")
+```
+
 
 ```{r}
 library(shiny)
+library(ggrepel)
 
 rider_choices <- winners_df2 |> distinct(winner_name) |> pull(winner_name)
 ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
+   #   radioButtons("country_or_rider",
+    #               label = "Choose a Country or a Rider:",
+     #              choices = c("Country", "Rider")),
       selectInput("rider_sel",
                   label = "Choose a Tour de France Winner:",
-                  choices = rider_choices)
+                  choices = rider_choices),
     ),
     mainPanel(
       plotOutput("winners_plot2"),
-      tableOutput("data")
+      tableOutput("data"),
+      tableOutput("data2"),
     )
   )
 )
@@ -103,7 +118,10 @@ server <- function(input, output, session) {
   
   winner_reactive <- reactive({
     winners_df2 |> filter(winner_name == input$rider_sel)
-    
+  })
+  
+  winner_reactive2 <- reactive({
+    winners_df3 |> filter(winner_name == input$rider_sel)
   })
   
   output$winners_plot2 <- renderPlot({
@@ -115,6 +133,7 @@ server <- function(input, output, session) {
       geom_hline(yintercept = overall_age, colour = "darkorange", linewidth = 0.5) +
       theme_classic(base_size = 20) +
       labs(title = "Ages of Tour de France Winners",
+           #subtitle = glue::glue(input$rider_sel),
            x = "Year",
            y = "Age of Winner")
     
@@ -122,6 +141,10 @@ server <- function(input, output, session) {
     
   output$data <- renderTable({
     winner_reactive()
+  })
+  
+  output$data2 <- renderTable({
+    winner_reactive2()
   })
   
 }
