@@ -18,6 +18,7 @@ winners <- winners |>
   mutate(year = year(start_date))
 ```
 
+
 ```{r}
 winners_age <- winners |> group_by(edition, year, winner_name, winner_team) |>
   summarise(winner_age = mean(age))
@@ -41,7 +42,7 @@ winners_plot <- ggplot(data = winners_df2, aes(x = year, y = winner_age, label =
   geom_line(colour = "deepskyblue1") +
   geom_point(size = 0.75) +
   geom_hline(yintercept = overall_age, colour = "red", linewidth = 0.5) +
-  geom_hline(yintercept = overall_age2, colour = "darkorange", linewidth = 0.5) +
+  # geom_hline(yintercept = overall_age2, colour = "darkorange", linewidth = 0.5) +
   theme_classic() +
   labs(title = "Ages of Tour de France Winners",
        x = "Year",
@@ -54,7 +55,29 @@ ggplotly(winners_plot)
 
 ### next, look at scatter plot of distance (km) vs elapsed time, user can select winner which will highlight the point(s)
 
+### 
+
 ### something with nationality, look at country with most wins, or a cool chart/graph showing the different nationalities
+```
+
+```{r}
+ggplot(data = winners, aes(x = time_overall, y = distance)) +
+  geom_point()
+```
+
+
+```{r}
+country_wins <- winners |> group_by(nationality) |>
+  summarise(country_wins = n()) |>
+  arrange(desc(country_wins)) |>
+  slice(1:7)
+
+ggplot(data = country_wins, aes(x = reorder(nationality, country_wins), y = country_wins)) +
+  geom_col(fill = "darkorange2", colour = "black") +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Country",
+       y = "Number of TDF Wins")
 ```
 
 
@@ -88,7 +111,7 @@ server <- function(input, output, session) {
       geom_line(colour = "deepskyblue1") +
       geom_point(size = 0.75) +
       geom_point(data = winner_reactive(), aes(x = year, y = winner_age), 
-                                               colour = "red", size = 4) +
+                 colour = "red", size = 4) +
       geom_hline(yintercept = overall_age, colour = "darkorange", linewidth = 0.5) +
       theme_classic(base_size = 20) +
       labs(title = "Ages of Tour de France Winners",
