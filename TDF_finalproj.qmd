@@ -13,18 +13,24 @@ library(tdf)
 library(tidyverse)
 library(lubridate)
 library(plotly)
-
-winners <- winners |>
-  mutate(year = year(start_date))
 ```
 
 
 ```{r}
+winners <- winners |>
+  mutate(year = year(start_date))
+
 winners_age <- winners |> group_by(edition, year, winner_name, winner_team) |>
   summarise(winner_age = mean(age))
 
 winners_wins <- winners |> group_by(edition, year, winner_name, winner_team) |>
   summarise(stage_wins = sum(stage_wins))
+
+winners <- winners |> mutate(age_range = case_when(age <= 23 ~ "Young",
+                                                   age > 23 & age <= 32 ~ "Average",
+                                                   age > 32 ~ "Old"))
+age_bracket_count <- winners |> group_by(age_range) |>
+  summarise(num = n())
 
 
 overall_age <- mean(winners$age)
@@ -56,8 +62,6 @@ ggplotly(winners_plot)
 ### looking at mean age of TDF winners
 
 ### user can select winner which will highlight the point(s) 
-
-### something with nationality, look at country with most wins
 ```
 
 
@@ -77,6 +81,25 @@ ggplot(data = country_wins, aes(x = reorder(nationality, country_wins), y = coun
 ```
 
 ```{r}
+## country wins 2
+country_wins <- winners |> group_by(nationality) |>
+  summarise(country_wins = n()) |>
+  arrange(desc(country_wins)) 
+
+ggplot(data = country_wins, aes(x = reorder(nationality, country_wins), y = country_wins)) +
+  geom_col(fill = "deepskyblue3", colour = "black") +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Country",
+       y = "Number of TDF Wins")
+
+## next, in shiny, add plotly so user can hover over either of the graphs and it will display the number of tdf wins for that country. 
+
+## then add more tabs with more interesting info
+```
+
+```{r}
+## not sure if I'll do something with this
 ## distance 
 winners |> group_by(year) |>
   summarise(tdf_distance = max(distance)) |>
@@ -97,21 +120,31 @@ library(ggrepel)
 
 rider_choices <- winners_df2 |> distinct(winner_name) |> pull(winner_name)
 ui <- fluidPage(
-  sidebarLayout(
-    sidebarPanel(
-   #   radioButtons("country_or_rider",
-    #               label = "Choose a Country or a Rider:",
-     #              choices = c("Country", "Rider")),
-      selectInput("rider_sel",
-                  label = "Choose a Tour de France Winner:",
-                  choices = rider_choices),
+  tabsetPanel(
+    tabPanel("Age: TDF Winners",
+      sidebarLayout(
+        sidebarPanel(
+          selectInput("rider_sel",
+                      label = "Choose a Tour de France Winner:",
+                      choices = rider_choices),
+        ),
+        mainPanel(
+          plotOutput("winners_plot2"),
+          tableOutput("data"),
+          tableOutput("data2"),
+        )
+      )
     ),
-    mainPanel(
-      plotOutput("winners_plot2"),
-      tableOutput("data"),
-      tableOutput("data2"),
+    tabPanel("Countries: TDF Winners",
+             radioButtons("output_select",
+                          label = "Choose Display:",
+                          choices = c("Top-Performing Countries", "All Countries"),
+                          selected = "Top-Performing Countries"),
+             mainPanel(
+               plotOutput("country_plot"),
+             )
     )
-  )
+  ),
 )
 
 server <- function(input, output, session) {
@@ -138,6 +171,8 @@ server <- function(input, output, session) {
            y = "Age of Winner")
     
   })
+  
+  ## clean these tables up next
     
   output$data <- renderTable({
     winner_reactive()
@@ -145,6 +180,41 @@ server <- function(input, output, session) {
   
   output$data2 <- renderTable({
     winner_reactive2()
+  })
+  
+  ## nationality output
+  
+  output$country_plot <- renderPlot({
+    if (input$output_select == "Top-Performing Countries") {
+      
+      country_wins <- winners |> group_by(nationality) |>
+        summarise(country_wins = n()) |>
+        arrange(desc(country_wins)) |>
+        slice(1:7)
+      
+      ggplot(data = country_wins, aes(x = reorder(nationality, country_wins), 
+                                      y = country_wins)) +
+        geom_col(fill = "darkorange2", colour = "black") +
+        coord_flip() +
+        theme_minimal() +
+        labs(x = "Country",
+             y = "Number of TDF Wins")
+    }
+    else {
+      country_wins <- winners |> group_by(nationality) |>
+        summarise(country_wins = n()) |>
+        arrange(desc(country_wins)) 
+      
+      ggplot(data = country_wins, aes(x = reorder(nationality, country_wins), 
+                                      y = country_wins)) +
+        geom_col(fill = "deepskyblue3", colour = "black") +
+        coord_flip() +
+        theme_minimal() +
+        labs(x = "Country",
+             y = "Number of TDF Wins")
+      
+    }
+    
   })
   
 }
