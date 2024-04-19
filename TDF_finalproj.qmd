@@ -6,6 +6,7 @@ format:
     embed-resources: true
 ---
 
+Data:
 https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-04-07/readme.md
 
 ```{r}
@@ -15,10 +16,16 @@ library(lubridate)
 library(plotly)
 ```
 
+### Pre-shiny exploratory stuff...
 
 ```{r}
 winners <- winners |>
   mutate(year = year(start_date))
+
+winners <- winners |>
+  mutate(year_born = year(born)) |>
+  mutate(year_died = year(died)) |>
+  mutate(lifespan = year_died - year_born)
 
 winners_age <- winners |> group_by(edition, year, winner_name, winner_team) |>
   summarise(winner_age = mean(age))
@@ -26,9 +33,12 @@ winners_age <- winners |> group_by(edition, year, winner_name, winner_team) |>
 winners_wins <- winners |> group_by(edition, year, winner_name, winner_team) |>
   summarise(stage_wins = sum(stage_wins))
 
-winners <- winners |> mutate(age_range = case_when(age <= 23 ~ "Young",
-                                                   age > 23 & age <= 32 ~ "Average",
-                                                   age > 32 ~ "Old"))
+winners <- winners |> mutate(age_range = case_when(age <= 23 ~ 
+                                                           "Young (< 23)",
+                                                         age > 23 & age <= 32 ~ 
+                                                           "Average (24-32)",
+                                                         age > 32 ~ 
+                                                           "Old (> 32)"))
 age_bracket_count <- winners |> group_by(age_range) |>
   summarise(num = n())
 
@@ -46,7 +56,6 @@ top_riders <- winners_df2 |> group_by(winner_name) |>
   arrange(desc(tdf_wins)) |>
   slice(1:6)
 
-
 winners_plot <- ggplot(data = winners_df2, aes(x = year, y = winner_age, label = winner_name, label2 = stage_wins)) +
   geom_line(colour = "deepskyblue1") +
   geom_point(size = 0.75) +
@@ -58,10 +67,6 @@ winners_plot <- ggplot(data = winners_df2, aes(x = year, y = winner_age, label =
        y = "Age of Winner") 
 
 ggplotly(winners_plot)
-
-### looking at mean age of TDF winners
-
-### user can select winner which will highlight the point(s) 
 ```
 
 
@@ -72,12 +77,16 @@ country_wins <- winners |> group_by(nationality) |>
   arrange(desc(country_wins)) |>
   slice(1:7)
 
-ggplot(data = country_wins, aes(x = reorder(nationality, country_wins), y = country_wins)) +
+plot_test <- ggplot(data = country_wins, aes(x = reorder(nationality, country_wins), 
+                                             y = country_wins, 
+                                             text = paste("TDF Wins: ", country_wins))) +
   geom_col(fill = "darkorange2", colour = "black") +
   coord_flip() +
   theme_minimal() +
   labs(x = "Country",
        y = "Number of TDF Wins")
+
+ggplotly(plot_test, tooltip = "text")
 ```
 
 ```{r}
@@ -86,16 +95,16 @@ country_wins <- winners |> group_by(nationality) |>
   summarise(country_wins = n()) |>
   arrange(desc(country_wins)) 
 
-ggplot(data = country_wins, aes(x = reorder(nationality, country_wins), y = country_wins)) +
+plot_test2 <- ggplot(data = country_wins, aes(x = reorder(nationality, country_wins), 
+                                              y = country_wins, 
+                                              text = paste("TDF Wins: ", country_wins))) +
   geom_col(fill = "deepskyblue3", colour = "black") +
   coord_flip() +
   theme_minimal() +
   labs(x = "Country",
        y = "Number of TDF Wins")
 
-## next, in shiny, add plotly so user can hover over either of the graphs and it will display the number of tdf wins for that country. 
-
-## then add more tabs with more interesting info
+ggplotly(plot_test2, tooltip = "text")
 ```
 
 ```{r}
@@ -113,37 +122,74 @@ ggplot(data = winners, aes(x = time_overall, y = distance)) +
   geom_hline(yintercept = avg_distance_km, colour = "red2")
 ```
 
+```{r}
+## top riders
+rider_wins <- winners |> group_by(winner_name) |>
+  summarise(num_wins = n()) |>
+  arrange(desc(num_wins)) |>
+  slice(1:9)
+
+plot_test3 <- ggplot(data = rider_wins, aes(x = reorder(winner_name, num_wins), 
+                                             y = num_wins, 
+                                             text = paste("TDF Wins: ", num_wins))) +
+  geom_col(fill = "deepskyblue4", colour = "black") +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Rider Name",
+       y = "Number of TDF Wins")
+
+ggplotly(plot_test3, tooltip = "text")
+```
 
 ```{r}
+ggplot(data = winners, aes(x = year, y = age, colour = age_range)) +
+  geom_point() +
+  theme_minimal() 
+```
+
+Ideas:
+-lifespan
+-scatterplot colored by age range. 
+
+### SHINY...
+
+```{r}
+library(shinythemes)
 library(shiny)
-library(ggrepel)
+library(ggplot2)
+library(plotly)
+library(knitr)
 
 rider_choices <- winners_df2 |> distinct(winner_name) |> pull(winner_name)
 ui <- fluidPage(
+  theme = shinytheme("united"),
   tabsetPanel(
-    tabPanel("Age: TDF Winners",
-      sidebarLayout(
-        sidebarPanel(
-          selectInput("rider_sel",
-                      label = "Choose a Tour de France Winner:",
-                      choices = rider_choices),
-        ),
-        mainPanel(
-          plotOutput("winners_plot2"),
-          tableOutput("data"),
-          tableOutput("data2"),
-        )
-      )
+    tabPanel("Age of Winners",
+             mainPanel(
+               selectInput("rider_sel",
+                           label = "Choose a Tour de France Winner:",
+                           choices = rider_choices),
+               plotOutput("winners_plot2"),
+               tableOutput("data_table_react"),
+             )),
+    tabPanel("Top Riders",
+             mainPanel(
+               plotlyOutput("rider_plot"),
+             )
     ),
-    tabPanel("Countries: TDF Winners",
+    tabPanel("Top Countries",
              radioButtons("output_select",
                           label = "Choose Display:",
                           choices = c("Top-Performing Countries", "All Countries"),
                           selected = "Top-Performing Countries"),
              mainPanel(
-               plotOutput("country_plot"),
+               plotlyOutput("country_plot"),
              )
-    )
+    ),
+    tabPanel("Top Teams",
+             mainPanel(
+               plotlyOutput("team_plot"),
+             ))
   ),
 )
 
@@ -151,10 +197,6 @@ server <- function(input, output, session) {
   
   winner_reactive <- reactive({
     winners_df2 |> filter(winner_name == input$rider_sel)
-  })
-  
-  winner_reactive2 <- reactive({
-    winners_df3 |> filter(winner_name == input$rider_sel)
   })
   
   output$winners_plot2 <- renderPlot({
@@ -165,26 +207,41 @@ server <- function(input, output, session) {
                  colour = "red", size = 4) +
       geom_hline(yintercept = overall_age, colour = "darkorange", linewidth = 0.5) +
       theme_classic(base_size = 20) +
-      labs(title = "Ages of Tour de France Winners",
-           #subtitle = glue::glue(input$rider_sel),
+      labs(title = "Age: Tour de France Winners",
            x = "Year",
-           y = "Age of Winner")
+           y = "Age (years)")
+  })
+  
+  ## fix this table 
+  output$data_table_react <- renderTable({
+    winner_reactive() |> kable()
+  })
+  
+  ## rider win output 
+  output$rider_plot <- renderPlotly({
     
-  })
-  
-  ## clean these tables up next
+    rider_wins <- winners |> group_by(winner_name) |>
+      summarise(num_wins = n()) |>
+      arrange(desc(num_wins)) |>
+      slice(1:9)
     
-  output$data <- renderTable({
-    winner_reactive()
+    ggplotly(
+      ggplot(data = rider_wins, aes(x = reorder(winner_name, num_wins), 
+                                    y = num_wins, 
+                                    text = paste("TDF Wins: ", num_wins))) +
+        geom_col(fill = "royalblue3", colour = "black") +
+        coord_flip() +
+        theme_minimal() +
+        labs(title = "Riders: Most Wins",
+             x = "Rider Name",
+             y = "Number of TDF Wins"),
+      tooltip = "text"
+    )
   })
   
-  output$data2 <- renderTable({
-    winner_reactive2()
-  })
   
-  ## nationality output
-  
-  output$country_plot <- renderPlot({
+  ## country win output
+  output$country_plot <- renderPlotly({
     if (input$output_select == "Top-Performing Countries") {
       
       country_wins <- winners |> group_by(nationality) |>
@@ -192,33 +249,61 @@ server <- function(input, output, session) {
         arrange(desc(country_wins)) |>
         slice(1:7)
       
-      ggplot(data = country_wins, aes(x = reorder(nationality, country_wins), 
-                                      y = country_wins)) +
-        geom_col(fill = "darkorange2", colour = "black") +
-        coord_flip() +
-        theme_minimal() +
-        labs(x = "Country",
-             y = "Number of TDF Wins")
+      ggplotly(
+        ggplot(data = country_wins, aes(x = reorder(nationality, country_wins), 
+                                        y = country_wins,
+                                        text = paste("TDF Wins: ", country_wins))) +
+          geom_col(fill = "aquamarine3", colour = "black") +
+          coord_flip() +
+          theme_minimal() +
+          labs(title = "Top-Performing Countries",
+               x = "Country",
+               y = "Number of TDF Wins"),
+        tooltip = "text"
+      )
     }
     else {
       country_wins <- winners |> group_by(nationality) |>
         summarise(country_wins = n()) |>
         arrange(desc(country_wins)) 
       
-      ggplot(data = country_wins, aes(x = reorder(nationality, country_wins), 
-                                      y = country_wins)) +
-        geom_col(fill = "deepskyblue3", colour = "black") +
-        coord_flip() +
-        theme_minimal() +
-        labs(x = "Country",
-             y = "Number of TDF Wins")
-      
+      ggplotly(
+        ggplot(data = country_wins, aes(x = reorder(nationality, country_wins), 
+                                        y = country_wins,
+                                        text = paste("TDF Wins: ", country_wins))) +
+          geom_col(fill = "cadetblue3", colour = "black") +
+          coord_flip() +
+          theme_minimal() +
+          labs(title = "All Countries",
+               x = "Country",
+               y = "Number of TDF Wins"),
+        tooltip = "text"
+      )
     }
-    
   })
   
+  ## team win output
+  output$team_plot <- renderPlotly({
+    
+    team_wins <- winners |> group_by(winner_team) |>
+      summarise(team_wins = n()) |>
+      arrange(desc(team_wins)) |>
+      slice(1:11)
+    
+    ggplotly(
+      ggplot(data = team_wins, aes(x = reorder(winner_team, team_wins), 
+                                   y = team_wins,
+                                   text = paste("TDF Wins: ", team_wins))) +
+        geom_col(fill = "darkorange2", colour = "black") +
+        coord_flip() +
+        theme_minimal() +
+        labs(title = "Teams: Most Wins",
+             x = "Team",
+             y = "Number of TDF Wins"),
+      tooltip = "text"
+    )
+  })
 }
 
 shinyApp(ui, server)
 ```
-
