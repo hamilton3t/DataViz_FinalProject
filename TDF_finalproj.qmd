@@ -69,7 +69,6 @@ winners_plot <- ggplot(data = winners_df2, aes(x = year, y = winner_age, label =
 ggplotly(winners_plot)
 ```
 
-
 ```{r}
 ## country wins
 country_wins <- winners |> group_by(nationality) |>
@@ -129,6 +128,12 @@ rider_wins <- winners |> group_by(winner_name) |>
   arrange(desc(num_wins)) |>
   slice(1:9)
 
+winners_year75 <- winners |>
+  filter(year >= 1975)
+
+winners_year00 <- winners |> 
+  filter(year < 1975)
+
 plot_test3 <- ggplot(data = rider_wins, aes(x = reorder(winner_name, num_wins), 
                                              y = num_wins, 
                                              text = paste("TDF Wins: ", num_wins))) +
@@ -147,7 +152,29 @@ ggplot(data = winners, aes(x = year, y = age, colour = age_range)) +
   theme_minimal() 
 ```
 
+### winner age vs. team age ... possibly incorporate something into shiny
+```{r}
+df_2015 <- stage_clean |>
+  filter(year == 2015)
+
+df_froome2015 <- df_sky |>
+  filter(rider == "Froome Chris")
+
+df_sky2015 <- df_2015 |>
+  filter(team == "Team Sky")
+
+mean(df_froome$age)
+mean(df_sky2015$age)
+
+df_2015 |> group_by(team) |>
+  summarise(mean_age = mean(age))
+
+```
+
+
 Ideas:
+-***winner age vs team age, in shiny, select year, then select team, output is...
+
 -lifespan
 -scatterplot colored by age range. 
 
@@ -173,6 +200,10 @@ ui <- fluidPage(
                tableOutput("data_table_react"),
              )),
     tabPanel("Top Riders",
+             radioButtons("output_sel",
+                          label = "Choose Display:",
+                          choices = c("All-time", "1975 - present", "First Edition - 1974"),
+                          selected = "All-time"),
              mainPanel(
                plotlyOutput("rider_plot"),
              )
@@ -206,7 +237,8 @@ server <- function(input, output, session) {
       geom_point(data = winner_reactive(), aes(x = year, y = winner_age), 
                  colour = "red", size = 4) +
       geom_hline(yintercept = overall_age, colour = "darkorange", linewidth = 0.5) +
-      theme_classic(base_size = 20) +
+     ## geom_area(fill = "green4", alpha = 0.3) +
+      theme_classic(base_size = 18) +
       labs(title = "Age: Tour de France Winners",
            x = "Year",
            y = "Age (years)")
@@ -214,29 +246,68 @@ server <- function(input, output, session) {
   
   ## fix this table 
   output$data_table_react <- renderTable({
-    winner_reactive() |> kable()
+    winner_reactive() ## |> kable()
   })
   
   ## rider win output 
   output$rider_plot <- renderPlotly({
-    
-    rider_wins <- winners |> group_by(winner_name) |>
-      summarise(num_wins = n()) |>
-      arrange(desc(num_wins)) |>
-      slice(1:9)
-    
-    ggplotly(
-      ggplot(data = rider_wins, aes(x = reorder(winner_name, num_wins), 
-                                    y = num_wins, 
-                                    text = paste("TDF Wins: ", num_wins))) +
-        geom_col(fill = "royalblue3", colour = "black") +
-        coord_flip() +
-        theme_minimal() +
-        labs(title = "Riders: Most Wins",
-             x = "Rider Name",
-             y = "Number of TDF Wins"),
-      tooltip = "text"
-    )
+    if (input$output_sel == "All-time") {
+      rider_wins <- winners |> group_by(winner_name) |>
+        summarise(num_wins = n()) |>
+        arrange(desc(num_wins)) |>
+        slice(1:9)
+      
+      ggplotly(
+        ggplot(data = rider_wins, aes(x = reorder(winner_name, num_wins), 
+                                      y = num_wins, 
+                                      text = paste("TDF Wins: ", num_wins))) +
+          geom_col(fill = "royalblue1", colour = "black") +
+          coord_flip() +
+          theme_minimal() +
+          labs(title = "Most Wins (All-time)",
+               x = "Rider Name",
+               y = "Number of TDF Wins"),
+        tooltip = "text"
+      )
+    }
+    else if (input$output_sel == "First Edition - 1974") {
+      rider_wins3 <- winners_year00 |> group_by(winner_name) |>
+        summarise(num_wins = n()) |>
+        arrange(desc(num_wins)) |>
+        slice(1:5)
+      
+      ggplotly(
+        ggplot(data = rider_wins3, aes(x = reorder(winner_name, num_wins), 
+                                       y = num_wins, 
+                                       text = paste("TDF Wins: ", num_wins))) +
+          geom_col(fill = "royalblue4", colour = "black") +
+          coord_flip() +
+          theme_minimal() +
+          labs(title = "Most Wins (First Edition - 1974)",
+               x = "Rider Name",
+               y = "Number of TDF Wins"),
+        tooltip = "text"
+      )
+    }
+    else {
+      rider_wins2 <- winners_year75 |> group_by(winner_name) |>
+        summarise(num_wins = n()) |>
+        arrange(desc(num_wins)) |>
+        slice(1:8)
+      
+      ggplotly(
+        ggplot(data = rider_wins2, aes(x = reorder(winner_name, num_wins), 
+                                       y = num_wins, 
+                                       text = paste("TDF Wins: ", num_wins))) +
+          geom_col(fill = "royalblue3", colour = "black") +
+          coord_flip() +
+          theme_minimal() +
+          labs(title = "Most Wins (1975 - present)",
+               x = "Rider Name",
+               y = "Number of TDF Wins"),
+        tooltip = "text"
+      )
+    }
   })
   
   
@@ -294,11 +365,11 @@ server <- function(input, output, session) {
       ggplot(data = team_wins, aes(x = reorder(winner_team, team_wins), 
                                    y = team_wins,
                                    text = paste("TDF Wins: ", team_wins))) +
-        geom_col(fill = "darkorange2", colour = "black") +
+        geom_col(fill = "deepskyblue2", colour = "black") +
         coord_flip() +
         theme_minimal() +
         labs(title = "Teams: Most Wins",
-             x = "Team",
+             x = "Team Name",
              y = "Number of TDF Wins"),
       tooltip = "text"
     )
