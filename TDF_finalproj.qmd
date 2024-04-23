@@ -169,6 +169,28 @@ mean(df_sky2015$age)
 df_2015 |> group_by(team) |>
   summarise(mean_age = mean(age))
 
+average_age <- stage_clean |> group_by(year) |>
+  summarise(mean_year_age = mean(age))
+
+stage_clean2000 <- stage_clean |>
+  filter(year >= 2000)
+
+average_age2000 <- stage_clean2000 |> group_by(team, year) |>
+  summarise(avg_age = mean(age))
+```
+
+```{r}
+winners2000 <- winners |>
+  filter(year >= 2000)
+
+winner_join <- inner_join(winners2000, stage_clean2000)
+## select winner team, output is average age of team, compared to age of winner
+## once team is selected, group by team, and summarise mean age, also display winner age
+## make graph, plot, etc.. nice
+```
+
+```{r}
+
 ```
 
 
@@ -188,6 +210,7 @@ library(plotly)
 library(knitr)
 
 rider_choices <- winners_df2 |> distinct(winner_name) |> pull(winner_name)
+team_choices <- winner_join |> distinct(winner_team) |> pull(winner_team)
 ui <- fluidPage(
   theme = shinytheme("united"),
   tabsetPanel(
@@ -199,6 +222,14 @@ ui <- fluidPage(
                plotOutput("winners_plot2"),
                tableOutput("data_table_react"),
              )),
+    tabPanel("Team/Riders",
+             selectInput("team_sel",
+                         label = "Choose a winning team (2000-2019):",
+                         choices = team_choices),
+             mainPanel(
+               plotOutput("age_plot"),
+             )
+    ),
     tabPanel("Top Riders",
              radioButtons("output_sel",
                           label = "Choose Display:",
@@ -246,7 +277,7 @@ server <- function(input, output, session) {
   
   ## fix this table 
   output$data_table_react <- renderTable({
-    winner_reactive() ## |> kable()
+    winner_reactive() 
   })
   
   ## rider win output 
@@ -373,6 +404,41 @@ server <- function(input, output, session) {
              y = "Number of TDF Wins"),
       tooltip = "text"
     )
+  })
+  
+ #   observeEvent(input$team_sel, {
+    
+  #  year_choices <- winner_join |> filter(team == input$team_sel) |>
+  #    distinct(winner_team) |> pull(winner_team)
+    
+  #  updateSelectInput(inputId = "year_sel",
+   #                   choices = year_choices)
+    
+ # })
+  
+  team_age <- winner_join |> group_by(winner_team) |>
+    summarise(team_mean_age = mean(age))
+  
+  winner_age <- winners2000 |> group_by(winner_name, winner_team) |>
+    summarise(winner_mean_age = mean(age))
+  
+  age_joined <- winner_age |> left_join(team_age, by = c("winner_team"))
+  
+  age_reactive <- reactive({
+    age_joined |> filter(winner_team == input$team_sel)
+  })
+  
+  output$age_plot <- renderPlot({
+    
+   # ggplot(data = age_reactive(), aes(x = winner_team, y = team_mean_age)) +
+    #  geom_col() +
+   #   theme_minimal()
+    
+    ggplot(age_reactive(), aes(x = winner_name)) +
+      geom_bar(aes(y = winner_mean_age, fill = "Winner"), stat = "identity", 
+               position = "dodge") +
+      geom_bar(aes(y = team_mean_age, fill = "Team"), stat = "identity", position = "dodge") +
+      theme_minimal()
   })
 }
 
