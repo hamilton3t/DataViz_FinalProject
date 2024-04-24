@@ -6,8 +6,7 @@ format:
     embed-resources: true
 ---
 
-Data:
-https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-04-07/readme.md
+Data: https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-04-07/readme.md
 
 ```{r}
 library(tdf)
@@ -67,6 +66,23 @@ winners_plot <- ggplot(data = winners_df2, aes(x = year, y = winner_age, label =
        y = "Age of Winner") 
 
 ggplotly(winners_plot)
+```
+
+
+```{r}
+## age comparison
+age_dc <- age_joined |> 
+  filter(winner_team == "Discovery Channel")
+
+ggplot(data = age_dc, aes(x = reorder(winner_team, team_mean_age), 
+                              y = team_mean_age)) +
+  geom_point(colour = "red3", size = 6) +
+  geom_point(aes(x = winner_name, y = winner_mean_age), 
+             colour = "yellow3", size = 6) +
+  labs(x = "Name",
+       y = "Age") +
+  theme_classic() +
+  ylim(20, 35)
 ```
 
 ```{r}
@@ -153,6 +169,7 @@ ggplot(data = winners, aes(x = year, y = age, colour = age_range)) +
 ```
 
 ### winner age vs. team age ... possibly incorporate something into shiny
+
 ```{r}
 df_2015 <- stage_clean |>
   filter(year == 2015)
@@ -186,10 +203,6 @@ winners2000 <- winners |>
 winner_join <- inner_join(winners2000, stage_clean2000)
 ```
 
--next, make a reactive data table for age comparison, summarizing the difference of the user-selected team's average age vs. winner age.
-
--
-
 ### SHINY...
 
 ```{r}
@@ -214,7 +227,6 @@ ui <- fluidPage(
                         27.7 years old"),
                helpText("Note: the red-highlighted point(s) display the winning year(s) 
                and respective age of the user-selected champion."),
-               helpText("(There is more winner-related data attached in the data table)"),
                plotOutput("winners_plot2"),
                tableOutput("data_table_react"),
              )),
@@ -224,7 +236,7 @@ ui <- fluidPage(
                          choices = team_choices),
                             helpText("The selected team is displayed with its corresponding
                                      Tour de France winner(s)."),
-             helpText("Note: Team Age is calculated as a cumulative average of each team's 
+             helpText("Note: Team Age is calculated as the cumulative average of each team's 
                                      mean rider age from 2000 to 2019."),
              mainPanel(
                plotlyOutput("age_plot"),
@@ -269,14 +281,11 @@ server <- function(input, output, session) {
       geom_point(data = winner_reactive(), aes(x = year, y = winner_age), 
                  colour = "red", size = 4) +
       geom_hline(yintercept = overall_age, colour = "darkorange", linewidth = 0.5) +
-     ## geom_area(fill = "green4", alpha = 0.3) +
       theme_classic(base_size = 18) +
       labs(title = "Age: Tour de France Winners",
            x = "Year",
            y = "Age (years)")
   })
-  
-  ## fix this table 
   output$data_table_react <- renderTable({
     winner_reactive() 
   })
@@ -434,15 +443,8 @@ server <- function(input, output, session) {
              y = "Age") +
         theme_classic(base_size = 15) +
         ylim(20, 35),
-      
       tooltip = "text"
     )
-    
-  #  output$team_age_react <- renderTable({
-      
-      
-  #  })
-      
   })
 }
 

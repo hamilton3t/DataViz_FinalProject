@@ -1,0 +1,91 @@
+---
+title: "Final Project: Written Report"
+author: "Tristan Hamilton"
+format: 
+  html:
+    embed-resources: true
+---
+
+### Abstract
+
+The Tour de France is considered the world's most prestigious and difficult bike race. It is an annual stage race consisting of 21 day-long stages over the course of 23 days. The data set used in this project primarily focuses on past Tour de France winners and contains variables pertaining to the winners, such as: nationality, age, stage wins, and more. I was eager to explore the varying ages of Tour de France winners, and top-performing riders, teams, and countries. I found that the average winner age is 27.7 years old and that the majority of winners (80%) fall in the age range of 24-32. Only 10 winners have been over the age of 32, and about 15 winners under the age of 23. For rider performance, Lance Armstrong is the top-performing rider (7 TDF wins), and France has the most nation and team wins. 
+
+
+
+### Introduction
+
+I found this data set in the Tidy Tuesday repository on github, found here: <https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-04-07/readme.md>. Specifically, it comes from Alastair Rushworth's data package called 'tdf'. The primary data set is called 'winners' and contains 106 observations of 19 variables. It covers each edition of the Tour de France, from 1903 up to 2019. The primary variables of interest are winner_name, winner_team, stage_wins, age, and nationality. There is also another data set with more specific stage data, containing 255,752 observations of 11 variables pertaining to stage-specific results in each edition of the Tour de France. I intend looking into the average age of Tour de France winners, and comparing each winner's age to their team's average age. I will also investigate the top-performing countries, teams, and individual riders (in terms of TDF wins). 
+
+
+
+### Visualizations 
+
+Note: These are static visuals from my shiny app. 
+
+Age:
+```{r}
+ggplot(data = winners_df2, aes(x = year, y = winner_age)) +
+  geom_line(colour = "deepskyblue1") +
+  geom_point(size = 0.75) +
+  geom_hline(yintercept = overall_age, colour = "darkorange", linewidth = 0.5) +
+  theme_classic() +
+  labs(title = "Age: Tour de France Winners",
+       x = "Year",
+       y = "Age") 
+```
+The above graph looks at the varying ages of Tour de France winners across all editions. The orange line represents the mean winner age which is 27.7 years old. We are able to see that the majority of winners fall in the 24 to 32 age range, while there also various winners < 24 and > 32. Although this data set concludes in 2019, it is interesting to note that Tadej Pogačar won the 2020 Tour de France at the age of 21, and the subsequent year at the age of 22. 
+
+Age Comparison:
+```{r}
+ggplot(data = age_dc, aes(x = reorder(winner_team, team_mean_age), 
+                              y = team_mean_age)) +
+  geom_point(colour = "red3", size = 6) +
+  geom_point(aes(x = winner_name, y = winner_mean_age), 
+             colour = "yellow3", size = 6) +
+  labs(x = "Name",
+       title = "Age Comparison: Winner vs. Team Average",
+       y = "Age") +
+  theme_classic() +
+  ylim(20, 35)
+```
+
+Rider:
+```{r}
+ggplot(data = rider_wins, aes(x = reorder(winner_name, num_wins), 
+                              y = num_wins, 
+                              text = paste("TDF Wins: ", num_wins))) +
+  geom_col(fill = "deepskyblue4", colour = "black") +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Rider Name",
+       title = "Top-Performing Riders",
+       y = "Number of TDF Wins")
+```
+
+Country:
+```{r}
+ggplot(data = country_wins, aes(x = reorder(nationality, country_wins), 
+                                y = country_wins, 
+                                text = paste("TDF Wins: ", country_wins))) +
+  geom_col(fill = "darkorange2", colour = "black") +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Country",
+       title = "Top-Performing Countries",
+       y = "Number of TDF Wins")
+```
+
+Team:
+```{r}
+ggplot(data = team_wins, aes(x = reorder(winner_team, team_wins), 
+                             y = team_wins)) +
+  geom_col(fill = "deepskyblue2", colour = "black") +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Teams: Most Wins ",
+       x = "Team Name",
+       y = "Number of TDF Wins")
+```
+
+
+### Conclusion 
