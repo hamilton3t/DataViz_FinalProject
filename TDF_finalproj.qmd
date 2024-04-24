@@ -184,21 +184,11 @@ winners2000 <- winners |>
   filter(year >= 2000)
 
 winner_join <- inner_join(winners2000, stage_clean2000)
-## select winner team, output is average age of team, compared to age of winner
-## once team is selected, group by team, and summarise mean age, also display winner age
-## make graph, plot, etc.. nice
 ```
 
-```{r}
+-next, make a reactive data table for age comparison, summarizing the difference of the user-selected team's average age vs. winner age.
 
-```
-
-
-Ideas:
--***winner age vs team age, in shiny, select year, then select team, output is...
-
--lifespan
--scatterplot colored by age range. 
+-
 
 ### SHINY...
 
@@ -217,17 +207,28 @@ ui <- fluidPage(
     tabPanel("Age of Winners",
              mainPanel(
                selectInput("rider_sel",
-                           label = "Choose a Tour de France Winner:",
+                           label = "Choose a Tour de France Winner: (chronological)",
                            choices = rider_choices),
+               helpText("Each data point is a Tour de France winner. The horizontal 
+                        line represents the mean winner age across all editions, 
+                        27.7 years old"),
+               helpText("Note: the red-highlighted point(s) display the winning year(s) 
+               and respective age of the user-selected champion."),
+               helpText("(There is more winner-related data attached in the data table)"),
                plotOutput("winners_plot2"),
                tableOutput("data_table_react"),
              )),
-    tabPanel("Team/Riders",
+    tabPanel("Age Comparison",
              selectInput("team_sel",
                          label = "Choose a winning team (2000-2019):",
                          choices = team_choices),
+                            helpText("The selected team is displayed with its corresponding
+                                     Tour de France winner(s)."),
+             helpText("Note: Team Age is calculated as a cumulative average of each team's 
+                                     mean rider age from 2000 to 2019."),
              mainPanel(
-               plotOutput("age_plot"),
+               plotlyOutput("age_plot"),
+               tableOutput("team_age_react"),
              )
     ),
     tabPanel("Top Riders",
@@ -406,16 +407,6 @@ server <- function(input, output, session) {
     )
   })
   
- #   observeEvent(input$team_sel, {
-    
-  #  year_choices <- winner_join |> filter(team == input$team_sel) |>
-  #    distinct(winner_team) |> pull(winner_team)
-    
-  #  updateSelectInput(inputId = "year_sel",
-   #                   choices = year_choices)
-    
- # })
-  
   team_age <- winner_join |> group_by(winner_team) |>
     summarise(team_mean_age = mean(age))
   
@@ -428,17 +419,30 @@ server <- function(input, output, session) {
     age_joined |> filter(winner_team == input$team_sel)
   })
   
-  output$age_plot <- renderPlot({
+  output$age_plot <- renderPlotly({
     
-   # ggplot(data = age_reactive(), aes(x = winner_team, y = team_mean_age)) +
-    #  geom_col() +
-   #   theme_minimal()
+    ggplotly(
+      ggplot(data = age_reactive(), aes(x = reorder(winner_team, team_mean_age), 
+                                        y = team_mean_age, 
+                                        text = paste("Team Age: ", 
+                                                     round(team_mean_age, 1)))) +
+        geom_point(colour = "red3", size = 6) +
+        geom_point(aes(x = winner_name, y = winner_mean_age, 
+                       text = paste("Winner Age: ", round(winner_mean_age, 1))), 
+                   colour = "yellow2", size = 6) +
+        labs(x = "Name",
+             y = "Age") +
+        theme_classic(base_size = 15) +
+        ylim(20, 35),
+      
+      tooltip = "text"
+    )
     
-    ggplot(age_reactive(), aes(x = winner_name)) +
-      geom_bar(aes(y = winner_mean_age, fill = "Winner"), stat = "identity", 
-               position = "dodge") +
-      geom_bar(aes(y = team_mean_age, fill = "Team"), stat = "identity", position = "dodge") +
-      theme_minimal()
+  #  output$team_age_react <- renderTable({
+      
+      
+  #  })
+      
   })
 }
 
