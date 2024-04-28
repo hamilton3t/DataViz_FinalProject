@@ -15,6 +15,7 @@ The Tour de France is considered the world's most prestigious and difficult bike
 ### Introduction
 
 I found this data set in the Tidy Tuesday repository on github, found here: <https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-04-07/readme.md>. Specifically, it comes from Alastair Rushworth's data package called 'tdf'. The primary data set is called 'winners' and contains 106 observations of 19 variables. It covers each edition of the Tour de France, from 1903 up to 2019. The primary variables of interest are winner_name, winner_team, stage_wins, age, and nationality. There is also another data set with more specific stage data, containing 255,752 observations of 11 variables pertaining to stage-specific results in each edition of the Tour de France. I intend looking into the average age of Tour de France winners, and comparing each winner's age to their team's average age. I will also investigate the top-performing countries, teams, and individual riders (in terms of TDF wins). 
+**make note about including lance armstrong
 
 
 
@@ -22,7 +23,7 @@ I found this data set in the Tidy Tuesday repository on github, found here: <htt
 
 Note: These are static visuals from my shiny app. 
 
-Age:
+##### Age Distribution of Tour de France Winners:
 ```{r}
 ggplot(data = winners_df2, aes(x = year, y = winner_age)) +
   geom_line(colour = "deepskyblue1") +
@@ -33,9 +34,9 @@ ggplot(data = winners_df2, aes(x = year, y = winner_age)) +
        x = "Year",
        y = "Age") 
 ```
-The above graph looks at the varying ages of Tour de France winners across all editions. The orange line represents the mean winner age which is 27.7 years old. We are able to see that the majority of winners fall in the 24 to 32 age range, while there also various winners < 24 and > 32. Although this data set concludes in 2019, it is interesting to note that Tadej Pogačar won the 2020 Tour de France at the age of 21, and the subsequent year at the age of 22. 
+The above graph looks at the varying ages of Tour de France winners across all editions. Age is on the y-axis and year is on the x-axis. Each data point is the winner of an edition of the Tour de France. The orange horizontal line represents the mean winner age across all editions which is 27.7 years old. We are able to see that the majority of winners fall in the 24 to 32 age range, while there are some winners < 24 and > 32. Although this data set concludes in 2019, it is interesting to note that Tadej Pogačar won the 2020 Tour de France at the age of 21, and the subsequent year at the age of 22. In the shiny app, this graph is interactive and allows the user to select a Tour de France Winner which will highlight the respective winner's data point(s) in red. 
 
-Age Comparison:
+#### Age Comparison of the Winner's Age and their Team's Average Age:
 ```{r}
 ggplot(data = age_dc, aes(x = reorder(winner_team, team_mean_age), 
                               y = team_mean_age)) +
@@ -48,8 +49,11 @@ ggplot(data = age_dc, aes(x = reorder(winner_team, team_mean_age),
   theme_classic() +
   ylim(20, 35)
 ```
+The above graph compares the winner's age to their team's average age. The y-axis is age and the x-axis is the team and their corresponding winner(s). Note: the team age is calculated as the cumulative average of each team's mean rider age from 2000 to 2019. There were limitations with the data so calculating an average was a reasonable alternative. In this particular visual, we are solely looking at Team Discovery Channel, which includes Alberto Contador and Lance Armstrong, who won at age 24 and 33 respectively. In the shiny app, this graph is interactive with plotly and a user input. The user can select a winning team from 2000 to 2019, and the graph will update with the appropriate team and winner(s). Also, the plotly feature allows the user to hover over the data points which displays the age of the rider or the team. 
 
-Rider:
+
+
+#### Top Riders All-Time:
 ```{r}
 ggplot(data = rider_wins, aes(x = reorder(winner_name, num_wins), 
                               y = num_wins, 
@@ -62,7 +66,7 @@ ggplot(data = rider_wins, aes(x = reorder(winner_name, num_wins),
        y = "Number of TDF Wins")
 ```
 
-Country:
+#### Top-Performing Countries:
 ```{r}
 ggplot(data = country_wins, aes(x = reorder(nationality, country_wins), 
                                 y = country_wins, 
@@ -75,7 +79,7 @@ ggplot(data = country_wins, aes(x = reorder(nationality, country_wins),
        y = "Number of TDF Wins")
 ```
 
-Team:
+#### Top-Performing Teams:
 ```{r}
 ggplot(data = team_wins, aes(x = reorder(winner_team, team_wins), 
                              y = team_wins)) +
