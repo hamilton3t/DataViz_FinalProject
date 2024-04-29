@@ -1,0 +1,43 @@
+---
+title: "Final Project: Presentation"
+format: revealjs
+---
+
+## Data
+
+* Tour de France Winners with relevant variables
+
+* Stage-specific data across all editions
+
+```{r}
+head(winners)
+```
+
+## Visualization 1
+```{r}
+ggplot(data = winners_df2, aes(x = year, y = winner_age)) +
+  geom_line(colour = "deepskyblue1") +
+  geom_point(size = 0.75) +
+  geom_hline(yintercept = overall_age, colour = "darkorange", linewidth = 0.5) +
+  theme_classic() +
+  labs(title = "Age: Tour de France Winners",
+       x = "Year",
+       y = "Age") 
+```
+
+
+## Visualization 2
+```{r}
+ggplot(data = rider_wins, aes(x = reorder(winner_name, num_wins), 
+                              y = num_wins, 
+                              text = paste("TDF Wins: ", num_wins))) +
+  geom_col(fill = "deepskyblue4", colour = "black") +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Rider Name",
+       title = "Top-Performing Riders",
+       y = "Number of TDF Wins")
+```
+
+
+

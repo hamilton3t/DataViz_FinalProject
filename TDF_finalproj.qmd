@@ -70,6 +70,21 @@ ggplotly(winners_plot)
 
 
 ```{r}
+# age stuff
+average_age <- stage_clean |> group_by(year) |>
+  summarise(mean_year_age = mean(age))
+
+stage_clean2000 <- stage_clean |>
+  filter(year >= 2000)
+
+average_age2000 <- stage_clean2000 |> group_by(team, year) |>
+  summarise(avg_age = mean(age))
+
+winners2000 <- winners |>
+  filter(year >= 2000)
+
+winner_join <- inner_join(winners2000, stage_clean2000)
+
 ## age comparison
 age_dc <- age_joined |> 
   filter(winner_team == "Discovery Channel")
@@ -123,20 +138,6 @@ ggplotly(plot_test2, tooltip = "text")
 ```
 
 ```{r}
-## distance 
-winners |> group_by(year) |>
-  summarise(tdf_distance = max(distance)) |>
-  arrange(desc(tdf_distance))
-
-avg_distance_km <- mean(winners$distance)
-
-ggplot(data = winners, aes(x = time_overall, y = distance)) +
-  geom_point() +
-  geom_smooth() +
-  geom_hline(yintercept = avg_distance_km, colour = "red2")
-```
-
-```{r}
 ## top riders
 rider_wins <- winners |> group_by(winner_name) |>
   summarise(num_wins = n()) |>
@@ -161,29 +162,6 @@ plot_test3 <- ggplot(data = rider_wins, aes(x = reorder(winner_name, num_wins),
 ggplotly(plot_test3, tooltip = "text")
 ```
 
-```{r}
-ggplot(data = winners, aes(x = year, y = age, colour = age_range)) +
-  geom_point() +
-  theme_minimal() 
-```
-
-
-```{r}
-# age stuff
-average_age <- stage_clean |> group_by(year) |>
-  summarise(mean_year_age = mean(age))
-
-stage_clean2000 <- stage_clean |>
-  filter(year >= 2000)
-
-average_age2000 <- stage_clean2000 |> group_by(team, year) |>
-  summarise(avg_age = mean(age))
-
-winners2000 <- winners |>
-  filter(year >= 2000)
-
-winner_join <- inner_join(winners2000, stage_clean2000)
-```
 
 ### SHINY APP:
 
