@@ -3,6 +3,125 @@ title: "Final Project: Presentation"
 format: revealjs
 ---
 
+#### data is tricky to read in and won't let me render... going to have to use screenshots from shiny for presentation
+
+
+```{r include=FALSE}
+## Cleaning script
+
+library(tidyverse)
+library(tdf)
+
+winners <- tdf::editions %>% 
+  select(-stage_results)
+
+all_years <- tdf::editions %>% 
+  unnest_longer(stage_results) %>% 
+  mutate(stage_results = map(stage_results, ~ mutate(.x, rank = as.character(rank)))) %>% 
+  unnest_longer(stage_results) 
+
+stage_all <- all_years %>% 
+  select(stage_results) %>% 
+  flatten_df()
+
+combo_df <- bind_cols(all_years, stage_all) %>% 
+  select(-stage_results)
+
+stage_clean <- combo_df %>% 
+  select(edition, start_date,stage_results_id:last_col()) %>% 
+  mutate(year = lubridate::year(start_date)) %>% 
+  rename(age = age...25) %>% 
+  select(edition, year, everything(), -start_date)
+```
+
+
+```{r include=FALSE}
+library(tidyverse)
+library(lubridate)
+library(tdf)
+library(readr)
+
+winners <- winners |>
+  mutate(year = year(start_date))
+
+winners <- winners |>
+  mutate(year_born = year(born)) |>
+  mutate(year_died = year(died)) |>
+  mutate(lifespan = year_died - year_born)
+
+winners_age <- winners |> group_by(edition, year, winner_name, winner_team) |>
+  summarise(winner_age = mean(age))
+
+winners_wins <- winners |> group_by(edition, year, winner_name, winner_team) |>
+  summarise(stage_wins = sum(stage_wins))
+
+winners <- winners |> mutate(age_range = case_when(age <= 23 ~ 
+                                                           "Young (< 23)",
+                                                         age > 23 & age <= 32 ~ 
+                                                           "Average (24-32)",
+                                                         age > 32 ~ 
+                                                           "Old (> 32)"))
+age_bracket_count <- winners |> group_by(age_range) |>
+  summarise(num = n())
+
+
+overall_age <- mean(winners$age)
+overall_age2 <- median(winners$age)
+
+winners_df2 <- winners_age |> left_join(winners_wins, by = c("edition", "year", "winner_name", "winner_team"))
+
+winners_df3 <- winners |>
+  select(winner_name, distance, time_overall, time_margin)
+
+top_riders <- winners_df2 |> group_by(winner_name) |>
+  summarise(tdf_wins = n()) |>
+  arrange(desc(tdf_wins)) |>
+  slice(1:6)
+
+# age stuff
+average_age <- stage_clean |> group_by(year) |>
+  summarise(mean_year_age = mean(age))
+
+stage_clean2000 <- stage_clean |>
+  filter(year >= 2000)
+
+average_age2000 <- stage_clean2000 |> group_by(team, year) |>
+  summarise(avg_age = mean(age))
+
+winners2000 <- winners |>
+  filter(year >= 2000)
+
+winner_join <- inner_join(winners2000, stage_clean2000)
+
+## age comparison
+age_dc <- age_joined |> 
+  filter(winner_team == "Discovery Channel")
+
+## country wins
+country_wins <- winners |> group_by(nationality) |>
+  summarise(country_wins = n()) |>
+  arrange(desc(country_wins)) |>
+  slice(1:7)
+
+## country wins 2
+country_wins <- winners |> group_by(nationality) |>
+  summarise(country_wins = n()) |>
+  arrange(desc(country_wins)) 
+
+## top riders
+rider_wins <- winners |> group_by(winner_name) |>
+  summarise(num_wins = n()) |>
+  arrange(desc(num_wins)) |>
+  slice(1:9)
+
+winners_year75 <- winners |>
+  filter(year >= 1975)
+
+winners_year00 <- winners |> 
+  filter(year < 1975)
+```
+
+
 ## Data
 
 * Tour de France Winners with relevant variables
@@ -39,5 +158,12 @@ ggplot(data = rider_wins, aes(x = reorder(winner_name, num_wins),
        y = "Number of TDF Wins")
 ```
 
+## Findings 
+
+* Average age is 27.7 years old
+
+* Majority of winners fall in 24-32 age bracket
+
+* Most TDF wins: (7) Lance Armstrong
 
 

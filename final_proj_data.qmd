@@ -10,7 +10,6 @@ https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-04-07/
 ```{r}
 ## Get the Data
 
-
 library(readr)
 
 tdf_winners <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-07/tdf_winners.csv')

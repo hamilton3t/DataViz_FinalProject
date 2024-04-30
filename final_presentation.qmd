@@ -1,0 +1,45 @@
+---
+title: "Final Project: Presentation"
+author: "Tristan Hamilton"
+format: revealjs
+---
+
+## Data
+
+-   Various data sets pertaining to Tour de France winners and riders
+
+-   Past Tour de France Winners with relevant variables
+
+    (106 obs of 24 vars)
+
+-   Stage-specific data across all editions
+
+    (255,752 obs of 11 vars)
+
+## Visualization 1
+
+![](images/viz%201.png){width="695"}
+
+![](images/table%201.png){width="384"}
+
+## Visualization 2
+
+![](images/viz%202.png){width="732"}
+
+## Preview: other visualizations
+
+![](images/riders.png){width="275"}
+
+![](images/countries.png){width="273"}
+
+## Findings
+
+-   Average winner age = 27.7 years old
+
+-   Majority of Winners 24-32 years old
+
+-   Winner's age typically within 3 years of their team's avg age
+
+-   Lance Armstrong most wins (7)
+
+-   France = Top-performing country

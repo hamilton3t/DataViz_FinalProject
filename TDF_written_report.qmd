@@ -6,6 +6,92 @@ format:
     embed-resources: true
 ---
 
+```{r include=FALSE}
+library(tdf)
+library(tidyverse)
+library(lubridate)
+
+winners <- winners |>
+  mutate(year = year(start_date))
+
+winners <- winners |>
+  mutate(year_born = year(born)) |>
+  mutate(year_died = year(died)) |>
+  mutate(lifespan = year_died - year_born)
+
+winners_age <- winners |> group_by(edition, year, winner_name, winner_team) |>
+  summarise(winner_age = mean(age))
+
+winners_wins <- winners |> group_by(edition, year, winner_name, winner_team) |>
+  summarise(stage_wins = sum(stage_wins))
+
+winners <- winners |> mutate(age_range = case_when(age <= 23 ~ 
+                                                           "Young (< 23)",
+                                                         age > 23 & age <= 32 ~ 
+                                                           "Average (24-32)",
+                                                         age > 32 ~ 
+                                                           "Old (> 32)"))
+age_bracket_count <- winners |> group_by(age_range) |>
+  summarise(num = n())
+
+
+overall_age <- mean(winners$age)
+overall_age2 <- median(winners$age)
+
+winners_df2 <- winners_age |> left_join(winners_wins, by = c("edition", "year", "winner_name", "winner_team"))
+
+winners_df3 <- winners |>
+  select(winner_name, distance, time_overall, time_margin)
+
+top_riders <- winners_df2 |> group_by(winner_name) |>
+  summarise(tdf_wins = n()) |>
+  arrange(desc(tdf_wins)) |>
+  slice(1:6)
+
+# age stuff
+average_age <- stage_clean |> group_by(year) |>
+  summarise(mean_year_age = mean(age))
+
+stage_clean2000 <- stage_clean |>
+  filter(year >= 2000)
+
+average_age2000 <- stage_clean2000 |> group_by(team, year) |>
+  summarise(avg_age = mean(age))
+
+winners2000 <- winners |>
+  filter(year >= 2000)
+
+winner_join <- inner_join(winners2000, stage_clean2000)
+
+## age comparison
+age_dc <- age_joined |> 
+  filter(winner_team == "Discovery Channel")
+
+## country wins
+country_wins <- winners |> group_by(nationality) |>
+  summarise(country_wins = n()) |>
+  arrange(desc(country_wins)) |>
+  slice(1:7)
+
+## country wins 2
+country_wins <- winners |> group_by(nationality) |>
+  summarise(country_wins = n()) |>
+  arrange(desc(country_wins)) 
+
+## top riders
+rider_wins <- winners |> group_by(winner_name) |>
+  summarise(num_wins = n()) |>
+  arrange(desc(num_wins)) |>
+  slice(1:9)
+
+winners_year75 <- winners |>
+  filter(year >= 1975)
+
+winners_year00 <- winners |> 
+  filter(year < 1975)
+```
+
+
 ### Abstract
 
 The Tour de France is considered the world's most prestigious and difficult bike race. It is an annual stage race consisting of 21 day-long stages over the course of 23 days. The data set used in this project primarily focuses on past Tour de France winners. This refers to the "General Contender" or "GC" winner, which is the rider with the fastest cumulative time over the course of the entire race. The data set contains variables such as: nationality, age, stage wins, and more. I was eager to explore the varying ages of Tour de France winners, and top-performing riders, teams, and countries. I found that the average winner age is 27.7 years old and that the majority of winners (80%) fall in the age range of 24-32. Only 10 winners have been over the age of 32, and about 15 winners under the age of 23. For rider performance, Lance Armstrong is the top-performing rider (7 TDF wins), and France has the most nation and team wins. 
@@ -91,5 +177,5 @@ ggplot(data = team_wins, aes(x = reorder(winner_team, team_wins),
 The above graph shows the teams with the most Tour de France wins over time. Team name is on the x-axis and number of wins is on the y-axis. You will notice that there are several countries included in the team rankings. It is not uncommon to see a team constituted of riders of one particular nationality, but typically the team is still named after their sponsor(s). This is especially common for France, which has had a complete team of French riders in each edition of the Tour de France (the current French team is AG2R Citroën). However, I believe Team "France" in this case counts the cumulative wins of French teams over the years which is slightly biased towards the other teams. 
 
 ### Conclusion 
-Given my questions of interests, I didn't encounter any major limitations in the data, or in my visualizations. I found that the average age of a Tour de France winner is 27.7 years old, and the majority of winners fall in the age range of 24 to 32. I was also able to see the top-performing riders (Lance Armstrong), countries (France), and teams (France). When comparing a winner's age to their team's average, they tend to be pretty close, often the same or within 3 years. In the future, I would like to see more Tour de France data with rider-specific physiological/output stats. This includes VO2 max, watts per kilogram, resting heart rate, and other variables. This type of data is likely hard to find given that it is personal and changes over time. However, it would be interesting to build a regression model predicting stage wins or Tour de France wins based on certain stats. 
+Given my questions of interests, I didn't encounter any major limitations in the data or in my visualizations. I found that the average age of a Tour de France winner is 27.7 years old, and the majority of winners fall in the age range of 24 to 32. I was also able to see the top-performing riders (Lance Armstrong), countries (France), and teams (France). When comparing a winner's age to their team's average, they tend to be pretty close, often the same or within 3 years. In the future, I would like to see more Tour de France data with rider-specific physiological/output stats. This includes VO2 max, watts per kilogram, resting heart rate, and other variables. This type of data is likely hard to find given that it is personal and changes over time. However, it would be interesting to build a regression model predicting stage wins or Tour de France wins based on certain stats. 
 
