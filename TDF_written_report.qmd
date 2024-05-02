@@ -6,14 +6,14 @@ format:
     embed-resources: true
 ---
 
-```{r include=FALSE}
+```{r}
 library(tdf)
 library(tidyverse)
 library(lubridate)
 library(plotly)
 library(readr)
 
-
+## code to read-in data and cleaning (provided on github)
 tdf_winners <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-07/tdf_winners.csv')
 
 tuesdata <- tidytuesdayR::tt_load('2020-04-07')
@@ -43,7 +43,8 @@ stage_clean <- combo_df %>%
 tdf_winners <- tuesdata$tdf_winners
 ```
 
-```{r include=FALSE}
+```{r}
+## code for visualizations
 winners <- winners |>
   mutate(year = year(start_date))
 
