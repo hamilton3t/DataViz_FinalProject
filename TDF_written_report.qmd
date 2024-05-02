@@ -7,7 +7,7 @@ format:
 ---
 
 
-### Code for my visualizations:
+##### Code for my visualizations:
 ```{r include=FALSE}
 library(tdf)
 library(tidyverse)
@@ -44,7 +44,7 @@ stage_clean <- combo_df %>%
 tdf_winners <- tuesdata$tdf_winners
 ```
 
-```{r}
+```{r warning=FALSE, message=FALSE}
 winners <- winners |>
   mutate(year = year(start_date))
 
