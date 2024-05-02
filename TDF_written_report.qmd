@@ -10,7 +10,40 @@ format:
 library(tdf)
 library(tidyverse)
 library(lubridate)
+library(plotly)
+library(readr)
 
+
+tdf_winners <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-07/tdf_winners.csv')
+
+tuesdata <- tidytuesdayR::tt_load('2020-04-07')
+tuesdata <- tidytuesdayR::tt_load(2020, week = 15)
+
+winners <- tdf::editions %>% 
+  select(-stage_results)
+
+all_years <- tdf::editions %>% 
+  unnest_longer(stage_results) %>% 
+  mutate(stage_results = map(stage_results, ~ mutate(.x, rank = as.character(rank)))) %>% 
+  unnest_longer(stage_results) 
+
+stage_all <- all_years %>% 
+  select(stage_results) %>% 
+  flatten_df()
+
+combo_df <- bind_cols(all_years, stage_all) %>% 
+  select(-stage_results)
+
+stage_clean <- combo_df %>% 
+  select(edition, start_date,stage_results_id:last_col()) %>% 
+  mutate(year = lubridate::year(start_date)) %>% 
+  rename(age = age...25) %>% 
+  select(edition, year, everything(), -start_date)
+
+tdf_winners <- tuesdata$tdf_winners
+```
+
+```{r include=FALSE}
 winners <- winners |>
   mutate(year = year(start_date))
 
@@ -63,6 +96,14 @@ winners2000 <- winners |>
 
 winner_join <- inner_join(winners2000, stage_clean2000)
 
+team_age <- winner_join |> group_by(winner_team) |>
+  summarise(team_mean_age = mean(age))
+
+winner_age <- winners2000 |> group_by(winner_name, winner_team) |>
+  summarise(winner_mean_age = mean(age))
+
+age_joined <- winner_age |> left_join(team_age, by = c("winner_team"))
+
 ## age comparison
 age_dc <- age_joined |> 
   filter(winner_team == "Discovery Channel")
@@ -89,20 +130,27 @@ winners_year75 <- winners |>
 
 winners_year00 <- winners |> 
   filter(year < 1975)
+
+## team wins
+
+team_wins <- winners |> group_by(winner_team) |>
+  summarise(team_wins = n()) |>
+  arrange(desc(team_wins)) |>
+  slice(1:11)
 ```
 
 
-### Abstract
+## Abstract
 
 The Tour de France is considered the world's most prestigious and difficult bike race. It is an annual stage race consisting of 21 day-long stages over the course of 23 days. The data set used in this project primarily focuses on past Tour de France winners. This refers to the "General Contender" or "GC" winner, which is the rider with the fastest cumulative time over the course of the entire race. The data set contains variables such as: nationality, age, stage wins, and more. I was eager to explore the varying ages of Tour de France winners, and top-performing riders, teams, and countries. I found that the average winner age is 27.7 years old and that the majority of winners (80%) fall in the age range of 24-32. Only 10 winners have been over the age of 32, and about 15 winners under the age of 23. For rider performance, Lance Armstrong is the top-performing rider (7 TDF wins), and France has the most nation and team wins. 
 
 
-### Introduction
+## Introduction
 
-I found this data set in the Tidy Tuesday repository on github, found here: <https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-04-07/readme.md>. Specifically, it comes from Alastair Rushworth's data package called 'tdf'. The primary data set is called 'winners' and contains 106 observations of 19 variables. It covers each edition of the Tour de France, from 1903 up to 2019. The primary variables of interest are winner_name, winner_team, stage_wins, age, and nationality. There is also another data set with more specific stage data, containing 255,752 observations of 11 variables pertaining to stage-specific results in each edition of the Tour de France. I intend looking into the average age of Tour de France winners, and comparing each winner's age to their team's average age. I will also investigate the top-performing countries, teams, and individual riders (in terms of TDF wins). Note: Lance Armstrong is included in this data set, although he has been stripped of his seven Tour de France titles due to doping.
+I found this data set in the Tidy Tuesday repository on github, found here: <https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-04-07/readme.md>. Specifically, it comes from Alastair Rushworth's data package called 'tdf'. The primary data set is called 'winners' and contains 106 observations of 19 variables. It covers each edition of the Tour de France, from 1903 up to 2019. The primary variables of interest are winner_name, winner_team, stage_wins, age, and nationality. There is also another data set with more specific stage data, containing 255,752 observations of 11 variables pertaining to stage-specific results in each edition of the Tour de France. I intend looking into the average age of Tour de France winners, and comparing each winner's age to their team's average age. I will also investigate the top-performing countries, teams, and individual riders (in terms of TDF wins). I will incorporate this into a shiny app with various tabs that answer each of my questions of interest, along with input selections for some of the visualizations. Note: Lance Armstrong is included in this data set, although he has been stripped of his seven Tour de France titles due to doping. There has been widespread doping in cycling, including among Lance's competitors. 
 
 
-### Visualizations 
+## Visualizations 
 
 Note: These are static visuals from my shiny app. 
 
@@ -117,9 +165,9 @@ ggplot(data = winners_df2, aes(x = year, y = winner_age)) +
        x = "Year",
        y = "Age") 
 ```
-The above graph looks at the varying ages of Tour de France winners across all editions. Age is on the y-axis and year is on the x-axis. Each data point is the winner of an edition of the Tour de France (GC winner). The orange horizontal line represents the mean winner age across all editions which is 27.7 years old. We are able to see that the majority of winners fall in the 24 to 32 age range, while there are some winners < 24 and > 32. Although this data set concludes in 2019, it is interesting to note that Tadej Pogačar won the 2020 Tour de France at the age of 21, and the subsequent year at the age of 22. In the shiny app, this graph is interactive and allows the user to select a Tour de France Winner which will highlight the respective winner's data point(s) in red. 
+The above graph looks at the varying ages of Tour de France winners across all editions. Age is on the y-axis and year is on the x-axis. Each data point represents the age of a Tour de France winner. The orange horizontal line represents the mean winner age across all editions which is 27.7 years old. We are able to see that the majority of winners fall in the 24 to 32 age range, while there are some winners < 24 and > 32. Although this data set concludes in 2019, it is interesting to note that Tadej Pogačar won the 2020 Tour de France at the age of 21, and the subsequent year at the age of 22. In the shiny app, this graph is interactive and allows the user to select a Tour de France Winner which will highlight the respective winner's data point(s) in red, and update a table that contains other variables like year, age, and stage wins. 
 
-#### Age Comparison of the Winner's Age and their Team's Average Age:
+#### Age Comparison between Winner(s) Age and their Team's Average Age:
 ```{r}
 ggplot(data = age_dc, aes(x = reorder(winner_team, team_mean_age), 
                               y = team_mean_age)) +
@@ -132,7 +180,7 @@ ggplot(data = age_dc, aes(x = reorder(winner_team, team_mean_age),
   theme_classic() +
   ylim(20, 35)
 ```
-The above graph compares the winner's age to their team's average age. The y-axis is age and the x-axis is a team with their corresponding winner(s). Note: the team age is calculated as the cumulative average of each team's mean rider age from 2000 to 2019. There were limitations with the data so calculating an average was a reasonable alternative. In this particular visual, we are solely looking at Team Discovery Channel, which includes Alberto Contador and Lance Armstrong, who won at age 24 and 33 respectively. In the shiny app, this graph is interactive with plotly and a user input. The user can select a winning team from 2000 to 2019, and the graph will update with the appropriate team and winner(s). Also, the plotly feature allows the user to hover over the data points which displays the age of the rider and the team average. 
+The above graph compares the winner's age to their team's average age. The y-axis is age and the x-axis is a team with their corresponding winner(s). Note: the team age is calculated as the cumulative average of each team's mean rider age from 2000 to 2019. There were limitations with the data so calculating an average was a reasonable alternative. In this particular visual, we are solely looking at Team Discovery Channel, which includes winners Alberto Contador and Lance Armstrong, who won at age 24 and 33 respectively (during 2000-2019 time frame). In most casese, the winner's age is consistently within 3 years of their team's average age (not in this visualization). In the shiny app, this graph is interactive with plotly and an input selection. The user can select a winning team from 2000 to 2019, and the graph will update with the appropriate team and winner(s). Also, the plotly feature allows the user to hover over the data points which displays the age of the rider or the team average. 
 
 
 #### Top Riders All-Time:
@@ -161,7 +209,7 @@ ggplot(data = country_wins, aes(x = reorder(nationality, country_wins),
        title = "Top-Performing Countries",
        y = "Number of TDF Wins")
 ```
-The above graph displays the countries with the most Tour de France wins over time. Country is on the x-axis and number of wins is on the y-axis (axes are flipped). We can see that France has 36 wins, Belgium has 18, and Spain has 12. In the early years of the Tour, there was a much higher proportion of French riders in the field; subsequently, more French winners as well. Even in 2023, France had 32 riders-- more than any other nation. In the shiny app, there is a plotly feature, and radio Buttons that allow the user to select the above graph, or the top-seven performing countries. 
+The above graph displays the countries with the most Tour de France wins over time. Country is on the x-axis and number of wins is on the y-axis (axes are flipped). We can see that France has 36 wins, Belgium has 18, and Spain has 12. European countries are consistently the strongest. In the early years of the Tour, there was a much higher proportion of French riders in the field; subsequently, more French winners as well. Even in 2023, France had 32 riders-- more than any other nation. In the shiny app, there is a plotly feature, and radio Buttons that allow the user to select the above graph, or the top-seven performing countries. 
 
 #### Top-Performing Teams:
 ```{r}
@@ -174,8 +222,8 @@ ggplot(data = team_wins, aes(x = reorder(winner_team, team_wins),
        x = "Team Name",
        y = "Number of TDF Wins")
 ```
-The above graph shows the teams with the most Tour de France wins over time. Team name is on the x-axis and number of wins is on the y-axis. You will notice that there are several countries included in the team rankings. It is not uncommon to see a team constituted of riders of one particular nationality, but typically the team is still named after their sponsor(s). This is especially common for France, which has had a complete team of French riders in each edition of the Tour de France (the current French team is AG2R Citroën). However, I believe Team "France" in this case counts the cumulative wins of French teams over the years which is slightly biased towards the other teams. 
+The above graph shows the teams with the most Tour de France wins over time. Team name is on the x-axis and number of wins is on the y-axis. You will notice that there are several countries included in the team rankings. It is not uncommon to see a team constituted of riders of one particular nationality, but typically the team is still named after their sponsor(s). This is especially common for France, which has had a complete team of French riders in each edition of the Tour de France (the current French team is AG2R Citroën). However, I believe Team "France" in this case counts the cumulative wins of French teams over the years which is slightly biased towards the other teams. Regardless, Alcyon-Dunlop, Peugeot-Wolber, U.S. Postal Service, and Team Sky are some of the other top-performing teams historically. 
 
-### Conclusion 
-Given my questions of interests, I didn't encounter any major limitations in the data or in my visualizations. I found that the average age of a Tour de France winner is 27.7 years old, and the majority of winners fall in the age range of 24 to 32. I was also able to see the top-performing riders (Lance Armstrong), countries (France), and teams (France). When comparing a winner's age to their team's average, they tend to be pretty close, often the same or within 3 years. In the future, I would like to see more Tour de France data with rider-specific physiological/output stats. This includes VO2 max, watts per kilogram, resting heart rate, and other variables. This type of data is likely hard to find given that it is personal and changes over time. However, it would be interesting to build a regression model predicting stage wins or Tour de France wins based on certain stats. 
+## Conclusion 
+Given my questions of interest, I didn't encounter any major limitations in the data or in my visualizations. I found that the average age of a Tour de France winner is 27.7 years old, and the majority of winners fall in the age range of 24 to 32. I also found the top-performing riders (Lance Armstrong), countries (France), and teams (France). When comparing a winner's age to their team's average, they tend to be within 3 years, with some exceptions. In the future, I would like to see more Tour de France data with rider-specific physiological/output stats. This includes VO2 max, watts per kilogram, resting heart rate, and other variables. This type of data is likely hard to find given that it is personal and changes over time. However, it would be interesting to build a regression model predicting stage wins or Tour de France wins based on certain stats. 
 
