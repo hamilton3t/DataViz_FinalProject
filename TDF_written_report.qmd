@@ -6,13 +6,12 @@ format:
     embed-resources: true
 ---
 
-### Code:
 
-```{r}
+### Code for my visualizations:
+```{r include=FALSE}
 library(tdf)
 library(tidyverse)
 library(lubridate)
-library(plotly)
 library(readr)
 
 ## code to read-in data and cleaning (provided on github)
@@ -46,7 +45,6 @@ tdf_winners <- tuesdata$tdf_winners
 ```
 
 ```{r}
-## code for visualizations
 winners <- winners |>
   mutate(year = year(start_date))
 
