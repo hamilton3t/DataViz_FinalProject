@@ -6,6 +6,9 @@ format:
     embed-resources: true
 ---
 
+Github repository: <https://github.com/hamilton3t/DataViz_FinalProject>
+
+Blog Post: <https://hamilton3t.github.io/DataVizBlog/posts/final-blogpost/tdf_final_blogpost.html>
 
 ##### Code for my visualizations:
 
