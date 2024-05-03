@@ -9,7 +9,7 @@ format:
 
 The shiny app can be found below. The subsequent code is for wrangling, and experimenting with visualizations before implementing them into the app.
 
-The written report for this project was done in a separate file. 
+The written report for this project can be found in a separate file. 
 
 Data: https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-04-07/readme.md
 ```{r, warning=FALSE, message=FALSE}
